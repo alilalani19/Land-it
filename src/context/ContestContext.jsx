@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useMemo, useCallback } from "react";
 import { mockContests } from "../data/contests";
 
 const ContestContext = createContext();
@@ -7,7 +7,7 @@ export function ContestProvider({ children }) {
   const [contests, setContests] = useState(mockContests);
   const [submissions, setSubmissions] = useState([]);
 
-  function addContest(contest, userId) {
+  const addContest = useCallback((contest, userId) => {
     const newContest = {
       ...contest,
       id: String(Date.now()),
@@ -17,9 +17,9 @@ export function ContestProvider({ children }) {
     };
     setContests((prev) => [newContest, ...prev]);
     return newContest.id;
-  }
+  }, []);
 
-  function addSubmission({ contestId, userId, userName, githubUrl, notes }) {
+  const addSubmission = useCallback(({ contestId, userId, userName, githubUrl, notes }) => {
     const submission = {
       id: String(Date.now()),
       contestId,
@@ -54,27 +54,27 @@ export function ContestProvider({ children }) {
     );
 
     return submission;
-  }
+  }, []);
 
-  function getUserSubmissions(userId) {
+  const getUserSubmissions = useCallback((userId) => {
     return submissions.filter((s) => s.userId === userId);
-  }
+  }, [submissions]);
 
-  function getUserContests(userId) {
+  const getUserContests = useCallback((userId) => {
     return contests.filter((c) => c.createdBy === userId);
-  }
+  }, [contests]);
+
+  const value = useMemo(() => ({
+    contests,
+    submissions,
+    addContest,
+    addSubmission,
+    getUserSubmissions,
+    getUserContests,
+  }), [contests, submissions, addContest, addSubmission, getUserSubmissions, getUserContests]);
 
   return (
-    <ContestContext.Provider
-      value={{
-        contests,
-        submissions,
-        addContest,
-        addSubmission,
-        getUserSubmissions,
-        getUserContests,
-      }}
-    >
+    <ContestContext.Provider value={value}>
       {children}
     </ContestContext.Provider>
   );

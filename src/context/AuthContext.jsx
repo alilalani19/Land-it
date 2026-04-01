@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 
 const AuthContext = createContext();
 
@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
     }
   }, [user]);
 
-  function signup({ name, email, password }) {
+  const signup = useCallback(({ name, email, password }) => {
     const users = loadUsers();
     if (users.find((u) => u.email === email)) {
       return { error: "An account with this email already exists." };
@@ -44,9 +44,9 @@ export function AuthProvider({ children }) {
     localStorage.setItem("landit_users", JSON.stringify([...users, { ...newUser, password }]));
     setUser(newUser);
     return { success: true };
-  }
+  }, []);
 
-  function login({ email, password }) {
+  const login = useCallback(({ email, password }) => {
     const users = loadUsers();
     const found = users.find((u) => u.email === email && u.password === password);
     if (!found) {
@@ -55,14 +55,16 @@ export function AuthProvider({ children }) {
     const { password: _, ...safeUser } = found;
     setUser(safeUser);
     return { success: true };
-  }
+  }, []);
 
-  function logout() {
+  const logout = useCallback(() => {
     setUser(null);
-  }
+  }, []);
+
+  const value = useMemo(() => ({ user, signup, login, logout }), [user, signup, login, logout]);
 
   return (
-    <AuthContext.Provider value={{ user, signup, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
