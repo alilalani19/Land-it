@@ -1,11 +1,16 @@
-import Stripe from "stripe";
+const Stripe = require("stripe");
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    return res.status(500).json({ error: "Stripe key not configured" });
+  }
+
+  const stripe = new Stripe(key);
 
   try {
     const { challengeData } = req.body;
@@ -20,7 +25,7 @@ export default async function handler(req, res) {
               name: "Post a Challenge on Land-it",
               description: `${challengeData?.title || "Hiring Challenge"} — ${challengeData?.company || "Company"}`,
             },
-            unit_amount: 5499, // $54.99
+            unit_amount: 5499,
           },
           quantity: 1,
         },
@@ -39,4 +44,4 @@ export default async function handler(req, res) {
     console.error("Stripe error:", err);
     res.status(500).json({ error: err.message });
   }
-}
+};
