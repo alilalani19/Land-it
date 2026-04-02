@@ -1,47 +1,17 @@
-const API_KEY = import.meta.env.VITE_AI_API_KEY || "";
-const API_URL =
-  import.meta.env.VITE_AI_API_URL ||
-  "https://api.anthropic.com/v1/messages";
-
 export async function generateChallenge({ company, role, difficulty, topic }) {
-  const prompt = `Generate a technical hiring challenge for the following:
-Company: ${company}
-Role: ${role}
-Difficulty: ${difficulty}
-Topic: ${topic}
+  // Try the server-side API route first (key stays safe on server)
+  try {
+    const res = await fetch("/api/generate-challenge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ company, role, difficulty, topic }),
+    });
 
-Respond with ONLY valid JSON (no markdown, no code blocks) matching this exact schema:
-{
-  "title": "A catchy, specific challenge title",
-  "description": "2-3 paragraph detailed description of the challenge",
-  "deliverables": ["deliverable 1", "deliverable 2", "deliverable 3", "deliverable 4", "deliverable 5"],
-  "techStack": ["tech1", "tech2", "tech3", "tech4"],
-  "evaluationCriteria": ["criterion 1", "criterion 2", "criterion 3", "criterion 4"],
-  "prize": "$X,000"
-}`;
-
-  if (API_KEY) {
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": API_KEY,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1024,
-          messages: [{ role: "user", content: prompt }],
-        }),
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text || "";
-      return JSON.parse(text);
-    } catch (e) {
-      console.warn("AI API call failed, using fallback:", e);
+    if (res.ok) {
+      return await res.json();
     }
+  } catch (e) {
+    console.warn("API route unavailable, using fallback:", e);
   }
 
   // Fallback: generate realistic mock data based on inputs

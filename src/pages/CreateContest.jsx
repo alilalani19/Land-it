@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Sparkles,
   ArrowLeft,
@@ -14,6 +14,7 @@ import {
 import { generateChallenge } from "../services/ai";
 import { useContests } from "../context/ContestContext";
 import { useAuth } from "../context/AuthContext";
+import { CreditCard } from "lucide-react";
 
 const difficulties = ["Junior", "Mid", "Senior", "Expert"];
 const inputClass =
@@ -21,12 +22,14 @@ const inputClass =
 
 export default function CreateContest() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { addContest } = useContests();
   const { user } = useAuth();
 
   // "choose" | "ai-basics" | "edit"
   const [step, setStep] = useState("choose");
   const [loading, setLoading] = useState(false);
+  const [paying, setPaying] = useState(false);
 
   const [form, setForm] = useState({
     company: "",
@@ -99,7 +102,7 @@ export default function CreateContest() {
     }
   }
 
-  function handlePublish() {
+  function publishContest() {
     const deadline = new Date();
     deadline.setDate(deadline.getDate() + 30);
 
@@ -124,6 +127,78 @@ export default function CreateContest() {
 
     navigate("/");
   }
+
+  async function handlePayAndPublish() {
+    setPaying(true);
+    try {
+      // Save challenge data to sessionStorage so we can restore after redirect
+      sessionStorage.setItem("landit_pending_challenge", JSON.stringify({ form, challenge }));
+
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challengeData: {
+            title: challenge.title,
+            company: form.company,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error("No checkout URL returned");
+        setPaying(false);
+      }
+    } catch (err) {
+      console.error("Payment error:", err);
+      setPaying(false);
+    }
+  }
+
+  // Handle return from Stripe Checkout
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "success") {
+      const saved = sessionStorage.getItem("landit_pending_challenge");
+      if (saved) {
+        try {
+          const { form: savedForm, challenge: savedChallenge } = JSON.parse(saved);
+          setForm(savedForm);
+          setChallenge(savedChallenge);
+          setStep("edit");
+          sessionStorage.removeItem("landit_pending_challenge");
+          // Auto-publish after successful payment
+          setTimeout(() => {
+            const deadline = new Date();
+            deadline.setDate(deadline.getDate() + 30);
+            const cleanList = (arr) => arr.filter((s) => s.trim());
+            addContest(
+              {
+                company: savedForm.company,
+                logo: `https://logo.clearbit.com/${savedForm.company.toLowerCase().replace(/\s+/g, "")}.com`,
+                role: savedForm.role,
+                difficulty: savedForm.difficulty,
+                title: savedChallenge.title,
+                description: savedChallenge.description,
+                techStack: cleanList(savedChallenge.techStack),
+                prize: savedChallenge.prize,
+                deadline: deadline.toISOString().split("T")[0],
+                deliverables: cleanList(savedChallenge.deliverables),
+                evaluationCriteria: cleanList(savedChallenge.evaluationCriteria),
+              },
+              user?.id
+            );
+            navigate("/");
+          }, 100);
+        } catch (e) {
+          console.error("Failed to restore challenge data:", e);
+        }
+      }
+    }
+  }, [searchParams]);
 
   const canGenerate = form.company && form.role && form.topic;
   const canPublish =
@@ -471,15 +546,27 @@ export default function CreateContest() {
               </div>
             </div>
 
-            {/* Publish */}
+            {/* Pay & Publish */}
             <button
-              onClick={handlePublish}
-              disabled={!canPublish}
+              onClick={handlePayAndPublish}
+              disabled={!canPublish || paying}
               className="glass-btn glass-btn-lg w-full mt-2"
             >
-              <Rocket className="w-4 h-4" />
-              Publish Challenge
+              {paying ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Redirecting to payment...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4" />
+                  Publish Challenge — $54.99
+                </>
+              )}
             </button>
+            <p className="text-xs text-[#222]/40 text-center mt-3">
+              Secure payment via Stripe. Your challenge goes live immediately after payment.
+            </p>
           </div>
         </div>
       )}
