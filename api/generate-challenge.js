@@ -1,4 +1,4 @@
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -50,4 +50,4 @@ Respond with ONLY valid JSON (no markdown, no code blocks) matching this exact s
     console.error("AI generation error:", err);
     res.status(500).json({ error: "Failed to generate challenge" });
   }
-};
+}
