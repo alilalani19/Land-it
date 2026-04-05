@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ContestProvider } from "./context/ContestContext";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import CreateContest from "./pages/CreateContest";
 import ContestDetail from "./pages/ContestDetail";
@@ -9,6 +10,9 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
+import Legal from "./pages/Legal";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 
 function ProtectedRoute({ children, redirectTo }) {
   const { user } = useAuth();
@@ -54,7 +58,11 @@ export default function App() {
                 }
               />
               <Route path="/contest/:id" element={<ContestDetail />} />
+              <Route path="/legal" element={<Legal />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
             </Routes>
+            <Footer />
           </div>
         </ContestProvider>
       </AuthProvider>

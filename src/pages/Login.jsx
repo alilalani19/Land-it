@@ -7,7 +7,12 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
-  const { login } = useAuth();
+  const { user, login } = useAuth();
+
+  if (user) {
+    navigate("/dashboard", { replace: true });
+    return null;
+  }
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");

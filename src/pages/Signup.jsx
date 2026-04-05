@@ -1,16 +1,27 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { User, Mail, Lock, ArrowRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Signup() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
-  const { signup } = useAuth();
+  const { user, signup } = useAuth();
+
+  if (user) {
+    navigate("/dashboard", { replace: true });
+    return null;
+  }
 
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [agreedTos, setAgreedTos] = useState(false);
+  const [agreedPrivacy, setAgreedPrivacy] = useState(false);
   const [error, setError] = useState("");
+
+  const tosId = useId();
+  const privacyId = useId();
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -25,6 +36,10 @@ export default function Signup() {
     }
     if (form.password.length < 6) {
       setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (!agreedTos || !agreedPrivacy) {
+      setError("You must agree to the Terms of Service and Privacy Policy.");
       return;
     }
     const result = signup(form);
@@ -76,6 +91,39 @@ export default function Signup() {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#222]/30" />
               <input type="password" value={form.password} onChange={(e) => update("password", e.target.value)} placeholder="At least 6 characters" className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/50 border border-black/8 text-sm focus:outline-none focus:border-[#222]/20 focus:ring-2 focus:ring-[#222]/5 transition placeholder:text-[#222]/30" />
+            </div>
+          </div>
+
+          {/* Legal checkboxes */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-start gap-2.5">
+              <Checkbox
+                id={tosId}
+                checked={agreedTos}
+                onCheckedChange={setAgreedTos}
+                className="mt-0.5"
+              />
+              <label htmlFor={tosId} className="text-xs text-[#222]/60 leading-relaxed cursor-pointer">
+                I have read and agree to the{" "}
+                <Link to="/terms" target="_blank" className="text-[#222] font-medium no-underline hover:underline">
+                  Terms of Service
+                </Link>
+              </label>
+            </div>
+
+            <div className="flex items-start gap-2.5">
+              <Checkbox
+                id={privacyId}
+                checked={agreedPrivacy}
+                onCheckedChange={setAgreedPrivacy}
+                className="mt-0.5"
+              />
+              <label htmlFor={privacyId} className="text-xs text-[#222]/60 leading-relaxed cursor-pointer">
+                I have read and acknowledge the{" "}
+                <Link to="/privacy" target="_blank" className="text-[#222] font-medium no-underline hover:underline">
+                  Privacy Policy
+                </Link>
+              </label>
             </div>
           </div>
 
