@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, X, LogOut, LayoutDashboard, Shield } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
@@ -35,6 +35,11 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex items-center gap-3 ml-1">
+              {user.isAdmin && (
+                <Link to="/admin" className="p-1.5 rounded-lg hover:bg-black/5 transition text-[#222]/40 hover:text-[#222] no-underline" title="Admin Panel">
+                  <Shield className="w-4 h-4" />
+                </Link>
+              )}
               <Link
                 to="/dashboard"
                 className="flex items-center gap-2.5 no-underline hover:opacity-80 transition"
@@ -82,6 +87,12 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex flex-col gap-3 pt-3 border-t border-black/5">
+              {user.isAdmin && (
+                <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-2 text-sm font-medium no-underline text-[#222]/70 hover:text-[#222] py-2">
+                  <Shield className="w-4 h-4" />
+                  Admin Panel
+                </Link>
+              )}
               <Link
                 to="/dashboard"
                 onClick={() => setOpen(false)}

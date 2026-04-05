@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import {
   Sparkles,
   ArrowLeft,
@@ -14,7 +14,7 @@ import {
 import { generateChallenge } from "../services/ai";
 import { useContests } from "../context/ContestContext";
 import { useAuth } from "../context/AuthContext";
-import { CreditCard } from "lucide-react";
+import { CreditCard, PartyPopper, ArrowRight, Eye } from "lucide-react";
 
 const difficulties = ["Junior", "Mid", "Senior", "Expert"];
 const inputClass =
@@ -26,10 +26,11 @@ export default function CreateContest() {
   const { addContest } = useContests();
   const { user } = useAuth();
 
-  // "choose" | "ai-basics" | "edit"
+  // "choose" | "ai-basics" | "edit" | "confirmed"
   const [step, setStep] = useState("choose");
   const [loading, setLoading] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [publishedId, setPublishedId] = useState(null);
 
   const [form, setForm] = useState({
     company: "",
@@ -166,33 +167,30 @@ export default function CreateContest() {
       if (saved) {
         try {
           const { form: savedForm, challenge: savedChallenge } = JSON.parse(saved);
+          sessionStorage.removeItem("landit_pending_challenge");
+          const deadline = new Date();
+          deadline.setDate(deadline.getDate() + 30);
+          const cleanList = (arr) => arr.filter((s) => s.trim());
+          const newId = addContest(
+            {
+              company: savedForm.company,
+              logo: `https://logo.clearbit.com/${savedForm.company.toLowerCase().replace(/\s+/g, "")}.com`,
+              role: savedForm.role,
+              difficulty: savedForm.difficulty,
+              title: savedChallenge.title,
+              description: savedChallenge.description,
+              techStack: cleanList(savedChallenge.techStack),
+              prize: savedChallenge.prize,
+              deadline: deadline.toISOString().split("T")[0],
+              deliverables: cleanList(savedChallenge.deliverables),
+              evaluationCriteria: cleanList(savedChallenge.evaluationCriteria),
+            },
+            user?.id
+          );
           setForm(savedForm);
           setChallenge(savedChallenge);
-          setStep("edit");
-          sessionStorage.removeItem("landit_pending_challenge");
-          // Auto-publish after successful payment
-          setTimeout(() => {
-            const deadline = new Date();
-            deadline.setDate(deadline.getDate() + 30);
-            const cleanList = (arr) => arr.filter((s) => s.trim());
-            addContest(
-              {
-                company: savedForm.company,
-                logo: `https://logo.clearbit.com/${savedForm.company.toLowerCase().replace(/\s+/g, "")}.com`,
-                role: savedForm.role,
-                difficulty: savedForm.difficulty,
-                title: savedChallenge.title,
-                description: savedChallenge.description,
-                techStack: cleanList(savedChallenge.techStack),
-                prize: savedChallenge.prize,
-                deadline: deadline.toISOString().split("T")[0],
-                deliverables: cleanList(savedChallenge.deliverables),
-                evaluationCriteria: cleanList(savedChallenge.evaluationCriteria),
-              },
-              user?.id
-            );
-            navigate("/");
-          }, 100);
+          setPublishedId(newId);
+          setStep("confirmed");
         } catch (e) {
           console.error("Failed to restore challenge data:", e);
         }
@@ -568,6 +566,65 @@ export default function CreateContest() {
               Secure payment via Stripe. Your challenge goes live immediately after payment.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Step: Confirmation */}
+      {step === "confirmed" && (
+        <div className="text-center py-8">
+          <div className="w-16 h-16 rounded-full gradient-green flex items-center justify-center mx-auto mb-6">
+            <PartyPopper className="w-8 h-8 text-white" />
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+            Challenge Published!
+          </h1>
+          <p className="text-[#222]/50 mb-2 max-w-md mx-auto">
+            Your challenge is now live and visible to thousands of developers. Payment confirmed.
+          </p>
+
+          {/* Challenge summary card */}
+          <div className="glass-card-strong rounded-2xl p-6 text-left mt-8 mb-8 max-w-lg mx-auto">
+            <p className="text-xs font-semibold text-[#222]/40 uppercase tracking-wider mb-1">
+              {form.company} &middot; {form.difficulty}
+            </p>
+            <h2 className="text-lg font-bold mb-1">{challenge.title}</h2>
+            <p className="text-sm text-[#222]/50 mb-3">{form.role}</p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {challenge.techStack?.filter((t) => t.trim()).map((t) => (
+                <span key={t} className="text-xs font-medium px-2.5 py-1 rounded-lg bg-[#222]/5 text-[#222]/70">
+                  {t}
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t border-black/5">
+              <span className="text-sm font-bold">{challenge.prize}</span>
+              <span className="text-xs text-[#222]/40">30 days remaining</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            {publishedId && (
+              <Link
+                to={`/contest/${publishedId}`}
+                className="glass-btn glass-btn-lg no-underline"
+              >
+                <Eye className="w-4 h-4" />
+                View Challenge
+              </Link>
+            )}
+            <Link
+              to="/"
+              className="glass-btn glass-btn-lg no-underline"
+            >
+              <ArrowRight className="w-4 h-4" />
+              Back to Home
+            </Link>
+          </div>
+
+          <p className="text-xs text-[#222]/40 mt-6">
+            A receipt has been sent to your email via Stripe.
+          </p>
         </div>
       )}
     </div>

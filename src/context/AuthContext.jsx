@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect, useMemo, useCallback } 
 
 const AuthContext = createContext();
 
+const ADMIN_EMAIL = "alalani29@sjs.org";
+
 function loadUsers() {
   try {
     return JSON.parse(localStorage.getItem("landit_users") || "[]");
@@ -16,6 +18,10 @@ function loadSession() {
   } catch {
     return null;
   }
+}
+
+function getAllUsers() {
+  return loadUsers().map(({ password, ...u }) => u);
 }
 
 export function AuthProvider({ children }) {
@@ -39,6 +45,7 @@ export function AuthProvider({ children }) {
       name,
       email,
       avatar: name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2),
+      isAdmin: email === ADMIN_EMAIL,
       createdAt: new Date().toISOString(),
     };
     localStorage.setItem("landit_users", JSON.stringify([...users, { ...newUser, password }]));
@@ -53,6 +60,8 @@ export function AuthProvider({ children }) {
       return { error: "Invalid email or password." };
     }
     const { password: _, ...safeUser } = found;
+    // Ensure admin flag is set even for existing accounts
+    safeUser.isAdmin = safeUser.email === ADMIN_EMAIL;
     setUser(safeUser);
     return { success: true };
   }, []);
@@ -61,7 +70,7 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const value = useMemo(() => ({ user, signup, login, logout }), [user, signup, login, logout]);
+  const value = useMemo(() => ({ user, signup, login, logout, getAllUsers }), [user, signup, login, logout]);
 
   return (
     <AuthContext.Provider value={value}>

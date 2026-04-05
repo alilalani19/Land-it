@@ -8,6 +8,7 @@ import ContestDetail from "./pages/ContestDetail";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import Admin from "./pages/Admin";
 
 function ProtectedRoute({ children, redirectTo }) {
   const { user } = useAuth();
@@ -41,6 +42,14 @@ export default function App() {
                 element={
                   <ProtectedRoute redirectTo="/dashboard">
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute redirectTo="/admin">
+                    <Admin />
                   </ProtectedRoute>
                 }
               />

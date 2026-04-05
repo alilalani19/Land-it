@@ -1,5 +1,29 @@
+function logPrompt(input, source) {
+  try {
+    const logs = JSON.parse(localStorage.getItem("landit_ai_logs") || "[]");
+    logs.push({
+      ...input,
+      source,
+      timestamp: new Date().toISOString(),
+      userId: JSON.parse(localStorage.getItem("landit_session") || "null")?.id || "anonymous",
+      userName: JSON.parse(localStorage.getItem("landit_session") || "null")?.name || "Anonymous",
+      userEmail: JSON.parse(localStorage.getItem("landit_session") || "null")?.email || "",
+    });
+    localStorage.setItem("landit_ai_logs", JSON.stringify(logs));
+  } catch {}
+}
+
+export function getAiLogs() {
+  try {
+    return JSON.parse(localStorage.getItem("landit_ai_logs") || "[]");
+  } catch {
+    return [];
+  }
+}
+
 export async function generateChallenge({ company, role, difficulty, topic }) {
-  // Try the server-side API route first (key stays safe on server)
+  logPrompt({ company, role, difficulty, topic }, "generate-challenge");
+
   try {
     const res = await fetch("/api/generate-challenge", {
       method: "POST",
@@ -14,7 +38,6 @@ export async function generateChallenge({ company, role, difficulty, topic }) {
     console.warn("API route unavailable, using fallback:", e);
   }
 
-  // Fallback: generate realistic mock data based on inputs
   return generateFallback({ company, role, difficulty, topic });
 }
 
