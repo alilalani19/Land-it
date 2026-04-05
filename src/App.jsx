@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ContestProvider } from "./context/ContestContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import PageTransition from "./components/PageTransition";
 import Home from "./pages/Home";
 import CreateContest from "./pages/CreateContest";
 import ContestDetail from "./pages/ContestDetail";
@@ -22,6 +23,10 @@ function ProtectedRoute({ children, redirectTo }) {
   return children;
 }
 
+function P({ children }) {
+  return <PageTransition>{children}</PageTransition>;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -31,13 +36,13 @@ export default function App() {
             <Navbar />
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
+              <Route path="/login" element={<P><Login /></P>} />
+              <Route path="/signup" element={<P><Signup /></P>} />
               <Route
                 path="/create"
                 element={
                   <ProtectedRoute redirectTo="/create">
-                    <CreateContest />
+                    <P><CreateContest /></P>
                   </ProtectedRoute>
                 }
               />
@@ -45,7 +50,7 @@ export default function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute redirectTo="/dashboard">
-                    <Dashboard />
+                    <P><Dashboard /></P>
                   </ProtectedRoute>
                 }
               />
@@ -53,14 +58,14 @@ export default function App() {
                 path="/admin"
                 element={
                   <ProtectedRoute redirectTo="/admin">
-                    <Admin />
+                    <P><Admin /></P>
                   </ProtectedRoute>
                 }
               />
-              <Route path="/contest/:id" element={<ContestDetail />} />
-              <Route path="/legal" element={<Legal />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/contest/:id" element={<P><ContestDetail /></P>} />
+              <Route path="/legal" element={<P><Legal /></P>} />
+              <Route path="/terms" element={<P><Terms /></P>} />
+              <Route path="/privacy" element={<P><Privacy /></P>} />
             </Routes>
             <Footer />
           </div>
