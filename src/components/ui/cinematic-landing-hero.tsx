@@ -247,8 +247,7 @@ export function CinematicHero({
       const introTl = gsap.timeline({ delay: 0.5 });
       introTl
         .to(".cin-text-track", { duration: 2.2, autoAlpha: 1, y: 0, scale: 1, filter: "blur(0px)", rotationX: 0, ease: "expo.out" })
-        .to({}, { duration: 0.4 })
-        .to(".cin-text-days", { duration: 1.8, clipPath: "inset(0 0% 0 0)", ease: "power4.inOut" });
+        .to(".cin-text-days", { duration: 1.2, clipPath: "inset(0 0% 0 0)", ease: "power4.inOut" }, "-=1.0");
 
       const scrollTl = gsap.timeline({
         scrollTrigger: {

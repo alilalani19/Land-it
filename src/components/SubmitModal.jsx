@@ -16,6 +16,7 @@ export default function SubmitModal({ onClose, contestId, contestTitle }) {
       contestId,
       userId: user.id,
       userName: user.name,
+      userEmail: user.email,
       githubUrl,
       notes,
     });
