@@ -22,6 +22,7 @@ export default async function handler(req, res) {
     params.append("line_items[0][price_data][unit_amount]", "5499");
     params.append("line_items[0][quantity]", "1");
     params.append("mode", "payment");
+    params.append("allow_promotion_codes", "true");
     params.append("success_url", `${origin}/create?payment=success&session_id={CHECKOUT_SESSION_ID}`);
     params.append("cancel_url", `${origin}/create?payment=cancelled`);
 
