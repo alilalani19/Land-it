@@ -9,10 +9,14 @@ export default function SubmitModal({ onClose, contestId, contestTitle }) {
   const [githubUrl, setGithubUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    addSubmission({
+    setSubmitting(true);
+    setError("");
+    const result = await addSubmission({
       contestId,
       userId: user.id,
       userName: user.name,
@@ -20,6 +24,15 @@ export default function SubmitModal({ onClose, contestId, contestTitle }) {
       githubUrl,
       notes,
     });
+    setSubmitting(false);
+    if (result?.error) {
+      setError(
+        result.error.includes("duplicate")
+          ? "You've already submitted to this challenge."
+          : result.error
+      );
+      return;
+    }
     setSubmitted(true);
     setTimeout(onClose, 2000);
   }
@@ -55,6 +68,11 @@ export default function SubmitModal({ onClose, contestId, contestTitle }) {
             <p className="text-sm text-[#222]/50 mb-6">{contestTitle}</p>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              {error && (
+                <div className="text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-xl">
+                  {error}
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium text-[#222]/70 mb-1.5 block">
                   GitHub Repository URL
@@ -85,9 +103,9 @@ export default function SubmitModal({ onClose, contestId, contestTitle }) {
                 />
               </div>
 
-              <button type="submit" className="glass-btn glass-btn-md w-full mt-2">
+              <button type="submit" disabled={submitting} className="glass-btn glass-btn-md w-full mt-2">
                 <Send className="w-4 h-4" />
-                Submit Solution
+                {submitting ? "Submitting..." : "Submit Solution"}
               </button>
             </form>
           </>

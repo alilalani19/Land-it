@@ -1,82 +1,91 @@
 import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
+import { supabase } from "../lib/supabase";
 
 const AuthContext = createContext();
 
-const ADMIN_EMAIL = "alalani29@sjs.org";
-
-function loadUsers() {
-  try {
-    return JSON.parse(localStorage.getItem("landit_users") || "[]");
-  } catch {
-    return [];
-  }
+async function fetchProfile(userId) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, name, avatar, is_admin, created_at")
+    .eq("id", userId)
+    .single();
+  if (error) return null;
+  return data;
 }
 
-function loadSession() {
-  try {
-    return JSON.parse(localStorage.getItem("landit_session") || "null");
-  } catch {
-    return null;
-  }
-}
-
-function getAllUsers() {
-  return loadUsers().map(({ password, ...u }) => u);
+function shapeUser(authUser, profile) {
+  if (!authUser || !profile) return null;
+  return {
+    id: authUser.id,
+    email: authUser.email,
+    name: profile.name,
+    avatar: profile.avatar,
+    isAdmin: profile.is_admin,
+    createdAt: profile.created_at || authUser.created_at,
+  };
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(loadSession);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem("landit_session", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("landit_session");
-    }
-  }, [user]);
+    let mounted = true;
 
-  const signup = useCallback(({ name, email, password }) => {
-    const users = loadUsers();
-    if (users.find((u) => u.email === email)) {
-      return { error: "An account with this email already exists." };
+    async function hydrate(session) {
+      if (!session?.user) {
+        if (mounted) setUser(null);
+        return;
+      }
+      const profile = await fetchProfile(session.user.id);
+      if (mounted) setUser(shapeUser(session.user, profile));
     }
-    const newUser = {
-      id: crypto.randomUUID(),
-      name,
-      email,
-      avatar: name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2),
-      isAdmin: email === ADMIN_EMAIL,
-      createdAt: new Date().toISOString(),
+
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      await hydrate(session);
+      if (mounted) setLoading(false);
+    })();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      hydrate(session);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
     };
-    localStorage.setItem("landit_users", JSON.stringify([...users, { ...newUser, password }]));
-    setUser(newUser);
-    return { success: true };
   }, []);
 
-  const login = useCallback(({ email, password }) => {
-    const users = loadUsers();
-    const found = users.find((u) => u.email === email && u.password === password);
-    if (!found) {
-      return { error: "Invalid email or password." };
+  const signup = useCallback(async ({ name, email, password }) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    });
+    if (error) return { error: error.message };
+    if (!data.session) {
+      return { error: "Check your email to confirm your account before signing in." };
     }
-    const { password: _, ...safeUser } = found;
-    // Ensure admin flag is set even for existing accounts
-    safeUser.isAdmin = safeUser.email === ADMIN_EMAIL;
-    setUser(safeUser);
     return { success: true };
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
+  const login = useCallback(async ({ email, password }) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    return { success: true };
   }, []);
 
-  const value = useMemo(() => ({ user, signup, login, logout, getAllUsers }), [user, signup, login, logout]);
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ user, loading, signup, login, logout }),
+    [user, loading, signup, login, logout]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

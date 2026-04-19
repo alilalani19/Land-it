@@ -7,28 +7,32 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
-  const { user, login } = useAuth();
+  const { user, loading, login } = useAuth();
 
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  if (loading) return null;
   if (user) {
     navigate("/dashboard", { replace: true });
     return null;
   }
-
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
     setError("");
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!form.email || !form.password) {
       setError("All fields are required.");
       return;
     }
-    const result = login(form);
+    setSubmitting(true);
+    const result = await login(form);
+    setSubmitting(false);
     if (result.error) {
       setError(result.error);
     } else {
@@ -90,8 +94,8 @@ export default function Login() {
             </div>
           </div>
 
-          <button type="submit" className="glass-btn glass-btn-md w-full mt-2">
-            Sign In
+          <button type="submit" disabled={submitting} className="glass-btn glass-btn-md w-full mt-2">
+            {submitting ? "Signing in..." : "Sign In"}
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

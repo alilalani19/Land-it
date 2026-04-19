@@ -79,26 +79,26 @@ export default function ContestDetail() {
     setEditing(true);
   }
 
-  function saveEdits() {
-    updateContest(id, editForm);
+  async function saveEdits() {
+    await updateContest(id, editForm);
     setEditing(false);
     setEditForm(null);
   }
 
-  function handleDelete() {
-    deleteContest(id);
+  async function handleDelete() {
+    await deleteContest(id);
     navigate("/");
   }
 
-  function handleScoreChange(subId, score) {
+  async function handleScoreChange(subId, score) {
     const num = parseInt(score, 10);
     if (!isNaN(num) && num >= 0 && num <= 100) {
-      updateSubmission(subId, { score: num });
+      await updateSubmission(subId, { score: num });
     }
   }
 
-  function handleStatusChange(subId, status) {
-    updateSubmission(subId, { status });
+  async function handleStatusChange(subId, status) {
+    await updateSubmission(subId, { status });
   }
 
   function updateEditList(field, index, value) {

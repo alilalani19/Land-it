@@ -8,27 +8,29 @@ export default function Signup() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
-  const { user, signup } = useAuth();
-
-  if (user) {
-    navigate("/dashboard", { replace: true });
-    return null;
-  }
+  const { user, loading, signup } = useAuth();
 
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [agreedTos, setAgreedTos] = useState(false);
   const [agreedPrivacy, setAgreedPrivacy] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const tosId = useId();
   const privacyId = useId();
+
+  if (loading) return null;
+  if (user) {
+    navigate("/dashboard", { replace: true });
+    return null;
+  }
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
     setError("");
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!form.name || !form.email || !form.password) {
       setError("All fields are required.");
@@ -42,7 +44,9 @@ export default function Signup() {
       setError("You must agree to the Terms of Service and Privacy Policy.");
       return;
     }
-    const result = signup(form);
+    setSubmitting(true);
+    const result = await signup(form);
+    setSubmitting(false);
     if (result.error) {
       setError(result.error);
     } else {
@@ -127,8 +131,8 @@ export default function Signup() {
             </div>
           </div>
 
-          <button type="submit" className="glass-btn glass-btn-md w-full mt-2">
-            Create Account
+          <button type="submit" disabled={submitting} className="glass-btn glass-btn-md w-full mt-2">
+            {submitting ? "Creating account..." : "Create Account"}
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

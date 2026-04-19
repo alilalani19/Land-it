@@ -1,13 +1,13 @@
-function logPrompt(input, source) {
+function logPrompt(input, source, user) {
   try {
     const logs = JSON.parse(localStorage.getItem("landit_ai_logs") || "[]");
     logs.push({
       ...input,
       source,
       timestamp: new Date().toISOString(),
-      userId: JSON.parse(localStorage.getItem("landit_session") || "null")?.id || "anonymous",
-      userName: JSON.parse(localStorage.getItem("landit_session") || "null")?.name || "Anonymous",
-      userEmail: JSON.parse(localStorage.getItem("landit_session") || "null")?.email || "",
+      userId: user?.id || "anonymous",
+      userName: user?.name || "Anonymous",
+      userEmail: user?.email || "",
     });
     localStorage.setItem("landit_ai_logs", JSON.stringify(logs));
   } catch {}
@@ -21,8 +21,8 @@ export function getAiLogs() {
   }
 }
 
-export async function generateChallenge({ company, role, difficulty, topic }) {
-  logPrompt({ company, role, difficulty, topic }, "generate-challenge");
+export async function generateChallenge({ company, role, difficulty, topic }, user = null) {
+  logPrompt({ company, role, difficulty, topic }, "generate-challenge", user);
 
   try {
     const res = await fetch("/api/generate-challenge", {

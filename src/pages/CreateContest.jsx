@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import {
   Sparkles,
   ArrowLeft,
@@ -21,7 +21,6 @@ const inputClass =
   "w-full px-4 py-3 rounded-xl bg-white/50 border border-black/8 text-sm focus:outline-none focus:border-[#222]/20 focus:ring-2 focus:ring-[#222]/5 transition placeholder:text-[#222]/30";
 
 export default function CreateContest() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { addContest } = useContests();
   const { user } = useAuth();
@@ -86,7 +85,7 @@ export default function CreateContest() {
   async function handleGenerate() {
     setLoading(true);
     try {
-      const result = await generateChallenge(form);
+      const result = await generateChallenge(form, user);
       setChallenge({
         title: result.title || "",
         description: result.description || "",
@@ -101,32 +100,6 @@ export default function CreateContest() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function publishContest() {
-    const deadline = new Date();
-    deadline.setDate(deadline.getDate() + 30);
-
-    const cleanList = (arr) => arr.filter((s) => s.trim());
-
-    addContest(
-      {
-        company: form.company,
-        logo: `https://logo.clearbit.com/${form.company.toLowerCase().replace(/\s+/g, "")}.com`,
-        role: form.role,
-        difficulty: form.difficulty,
-        title: challenge.title,
-        description: challenge.description,
-        techStack: cleanList(challenge.techStack),
-        prize: challenge.prize,
-        deadline: deadline.toISOString().split("T")[0],
-        deliverables: cleanList(challenge.deliverables),
-        evaluationCriteria: cleanList(challenge.evaluationCriteria),
-      },
-      user?.id
-    );
-
-    navigate("/");
   }
 
   async function handlePayAndPublish() {
@@ -162,41 +135,42 @@ export default function CreateContest() {
   // Handle return from Stripe Checkout
   useEffect(() => {
     const payment = searchParams.get("payment");
-    if (payment === "success") {
-      const saved = sessionStorage.getItem("landit_pending_challenge");
-      if (saved) {
-        try {
-          const { form: savedForm, challenge: savedChallenge } = JSON.parse(saved);
-          sessionStorage.removeItem("landit_pending_challenge");
-          const deadline = new Date();
-          deadline.setDate(deadline.getDate() + 30);
-          const cleanList = (arr) => arr.filter((s) => s.trim());
-          const newId = addContest(
-            {
-              company: savedForm.company,
-              logo: `https://logo.clearbit.com/${savedForm.company.toLowerCase().replace(/\s+/g, "")}.com`,
-              role: savedForm.role,
-              difficulty: savedForm.difficulty,
-              title: savedChallenge.title,
-              description: savedChallenge.description,
-              techStack: cleanList(savedChallenge.techStack),
-              prize: savedChallenge.prize,
-              deadline: deadline.toISOString().split("T")[0],
-              deliverables: cleanList(savedChallenge.deliverables),
-              evaluationCriteria: cleanList(savedChallenge.evaluationCriteria),
-            },
-            user?.id
-          );
-          setForm(savedForm);
-          setChallenge(savedChallenge);
-          setPublishedId(newId);
-          setStep("confirmed");
-        } catch (e) {
-          console.error("Failed to restore challenge data:", e);
-        }
+    if (payment !== "success") return;
+    const saved = sessionStorage.getItem("landit_pending_challenge");
+    if (!saved) return;
+
+    (async () => {
+      try {
+        const { form: savedForm, challenge: savedChallenge } = JSON.parse(saved);
+        sessionStorage.removeItem("landit_pending_challenge");
+        const deadline = new Date();
+        deadline.setDate(deadline.getDate() + 30);
+        const cleanList = (arr) => arr.filter((s) => s.trim());
+        const newId = await addContest(
+          {
+            company: savedForm.company,
+            logo: `https://logo.clearbit.com/${savedForm.company.toLowerCase().replace(/\s+/g, "")}.com`,
+            role: savedForm.role,
+            difficulty: savedForm.difficulty,
+            title: savedChallenge.title,
+            description: savedChallenge.description,
+            techStack: cleanList(savedChallenge.techStack),
+            prize: savedChallenge.prize,
+            deadline: deadline.toISOString().split("T")[0],
+            deliverables: cleanList(savedChallenge.deliverables),
+            evaluationCriteria: cleanList(savedChallenge.evaluationCriteria),
+          },
+          user?.id
+        );
+        setForm(savedForm);
+        setChallenge(savedChallenge);
+        setPublishedId(newId);
+        setStep("confirmed");
+      } catch (e) {
+        console.error("Failed to restore challenge data:", e);
       }
-    }
-  }, [searchParams]);
+    })();
+  }, [searchParams, addContest, user?.id]);
 
   const canGenerate = form.company && form.role && form.topic;
   const canPublish =

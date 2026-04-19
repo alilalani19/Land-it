@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Users,
@@ -15,6 +15,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useContests } from "../context/ContestContext";
 import { getAiLogs } from "../services/ai";
+import { supabase } from "../lib/supabase";
 
 const statusStyles = {
   Submitted: "bg-blue-100 text-blue-700",
@@ -23,10 +24,35 @@ const statusStyles = {
 };
 
 export default function Admin() {
-  const { user, getAllUsers } = useAuth();
+  const { user } = useAuth();
   const { contests, submissions } = useContests();
   const [tab, setTab] = useState("users");
   const [expandedUser, setExpandedUser] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
+
+  useEffect(() => {
+    if (!user?.isAdmin) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.error("fetch profiles error:", error);
+        return;
+      }
+      setAllUsers(
+        (data || []).map((p) => ({
+          id: p.id,
+          name: p.name,
+          email: p.email || "",
+          avatar: p.avatar,
+          isAdmin: p.is_admin,
+          createdAt: p.created_at,
+        }))
+      );
+    })();
+  }, [user?.isAdmin]);
 
   if (!user?.isAdmin) {
     return (
@@ -38,7 +64,6 @@ export default function Admin() {
     );
   }
 
-  const allUsers = getAllUsers();
   const aiLogs = getAiLogs();
 
   function getUserContests(userId) {
